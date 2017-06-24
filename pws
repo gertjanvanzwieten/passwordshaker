@@ -1,0 +1,50 @@
+#!/usr/bin/env python3
+
+import passwordshaker, sys, subprocess
+
+print(passwordshaker.header, file=sys.stderr)
+
+args = []
+kwargs = {}
+shortcuts = {'l': 'length', 'c': 'charset', 'm': 'modifier', 'h': 'help'}
+for item in sys.argv[1:]:
+  if item[:1] == '-' and item[1:2] in shortcuts:
+    kwargs[shortcuts[item[1:2]]] = item[2:]
+  elif item[:2] == '--':
+    key, _, val = item[2:].partition('=')
+    kwargs[key] = val
+  else:
+    args.append(item)
+
+if 'help' in kwargs:
+  sys.exit('''usage: pws [options] service
+
+  -h --help             show this help message and exit
+  -lLEN --length=LEN    set password length
+  -cCHR --charset=CHR   select character set
+  -mMOD --modifier=MOD  set password modifier
+  --<key>=VAL           add additional information''')
+
+try:
+  options = passwordshaker.load_options(*args, **kwargs)
+except Exception as e:
+  sys.exit('usage: pws [options] service\nerror: {}'.format(e))
+
+try:
+  password = passwordshaker.password(**options)
+except KeyboardInterrupt:
+  sys.exit('aborted.')
+except Exception as e:
+  sys.exit('an error occurred: {}'.format(e))
+
+passwordshaker.save_options(args[0], options)
+
+print('copying to clipboard for 60 seconds', file=sys.stderr)
+try:
+  subprocess.run(args=['xsel', '-nib'], shell=False, input=password.encode(), timeout=60)
+except (subprocess.TimeoutExpired, KeyboardInterrupt):
+  pass
+except Exception as e:
+  print('an error occurred: {}'.format(e))
+finally:
+  print('clipboard cleared', file=sys.stderr)

@@ -8,4 +8,5 @@ setuptools.setup(
   version=passwordshaker.__version__,
   author='Gertjan van Zwieten',
   py_modules=['passwordshaker'],
+  scripts=['pws'],
 )
