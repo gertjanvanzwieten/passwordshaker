@@ -122,6 +122,23 @@ def generate(key, chars, length):
   return pw
 
 
+def fingerprint(key, length=2):
+  '''Generate an easily recognizable fingerprint.
+
+  The fingerprint is made up of a configurable number of consonant+vowel
+  digraphs so as to form an legible word, that can be used to confirm that a
+  secret is entered correctly without revealing its contents.
+
+  In order to leak a minimum level of information about the secret, the space
+  of fingerprints is constructed such that its size is always a power of two,
+  so that it maps uniformly from the (much larger) space of secrets.
+  '''
+
+  digraphs = [c+v for c in 'bcdfglmnprst' for v in 'aeiouy' if v in 'aeio' or c not in 'bdfs']
+  assert len(digraphs) == 64 # 6 bits per digraph
+  return generate(key, digraphs, length)
+
+
 def password(modifier, length, charset, **other):
   '''Convenience function for command line interaction
 
@@ -136,5 +153,5 @@ def password(modifier, length, charset, **other):
   secret = getpass.getpass('master key: ')
   if not secret:
     raise KeyboardInterrupt
-  print('fingerprint:', generate(key=secret, chars=[c+v for c in 'bcdfghjklmnpqrstvwxz' for v in 'aeiouy'], length=2), file=sys.stderr)
+  print('fingerprint:', fingerprint(secret), file=sys.stderr)
   return generate(key=secret+modifier, chars=expand(charsets[charset]), length=length)
