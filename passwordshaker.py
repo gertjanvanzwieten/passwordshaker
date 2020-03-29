@@ -109,11 +109,8 @@ def generate(key, chars, length):
 
   import hashlib, math
   nchars = len(chars)
-  nbytes = math.ceil(length * math.log2(nchars) / 8)
-  v = 0
-  for b in hashlib.shake_256(key.encode()).digest(nbytes):
-    v <<= 8
-    v += b
+  nbytes = math.ceil(length * math.log2(nchars) / 8) # 256**nbytes >= nchars**length
+  v = int(hashlib.shake_256(key.encode()).hexdigest(nbytes), 16)
   pw = ''
   for _ in range(length):
     v, n = divmod(v, nchars)
