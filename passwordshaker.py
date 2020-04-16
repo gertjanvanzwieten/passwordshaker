@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import sys, hashlib, math, pathlib, getpass
+import sys, hashlib, math, pathlib, getpass, time
 
 __version__ = '0.99'
 
@@ -57,7 +57,7 @@ def iter_options(service):
     service = get_config_path() / service
   if service.is_file():
     with service.open() as lines:
-      yield from (line.rstrip().partition(' ')[::2] for line in lines)
+      yield from (line.rstrip().partition(' ')[::2] for line in lines if not line.startswith('#'))
 
 
 def load_options(service, **args):
@@ -96,6 +96,7 @@ def save_options(service, options, ask=False):
   path.mkdir(parents=True, exist_ok=True, mode=700)
   print('updating', ', '.join(options), file=sys.stderr)
   with (path/service).open('a') as f:
+    print('#', time.ctime(), file=f)
     for key, value in options.items():
       print(key, value, file=f)
 
