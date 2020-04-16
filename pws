@@ -37,7 +37,7 @@ except KeyboardInterrupt:
 except Exception as e:
   sys.exit('an error occurred: {}'.format(e))
 
-passwordshaker.save_options(args[0], options)
+passwordshaker.save_options(args[0], options, ask=True)
 
 print('copying to clipboard for 60 seconds', file=sys.stderr)
 try:

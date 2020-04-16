@@ -77,7 +77,7 @@ def load_options(service, **args):
   return options
 
 
-def save_options(service, options):
+def save_options(service, options, ask=False):
   '''Store options in config file
 
   Takes an options dictionary as returned by load_options and stores it in the
@@ -92,7 +92,7 @@ def save_options(service, options):
       options[key] = ''
     elif str(options[key]) == value:
       del options[key]
-  if not options:
+  if not options or ask and input('store changed entries? y/[n]') != 'y':
     return
   path.mkdir(parents=True, exist_ok=True, mode=700)
   print('updating', ', '.join(options), file=sys.stderr)
