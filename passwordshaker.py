@@ -32,19 +32,33 @@ def expand(s):
   return chars
 
 
-def get_config_path(service):
-  '''Create a path object to the config file for service
+def get_config_path():
+  '''Return a path object to the (possibly nonexistent) config directory
 
-  Tests for existence of a ~/.config/passwordshaker or ~/.passwordshaker
-  directory, in that order, and returns a pathlib.Path instance to the
-  (possibly nonexistent) configuration file within, or None if no directory was
-  found to exist.'''
+  Returns a pathlib.Path reference to ~/.config/passwordshaker if it exists,
+  otherwise ~/.passwordshaker if it exists, otherwise ~/.config/passwordshaker.'''
 
   import pathlib
   home = pathlib.Path.home()
-  for path in home/'.config'/'passwordshaker', home/'.passwordshaker':
-    if path.is_dir():
-      return path / service
+  path = home / '.config' / 'passwordshaker'
+  if not path.is_dir():
+    altpath = home / '.passwordshaker'
+    if altpath.is_dir():
+      return altpath
+  return path
+
+
+def iter_options(service):
+  '''Iterate over key, value pairs in a service config file.
+
+  Returns an iterator for ``service``, which can be a string or a path object.
+  If the service file does not exist an empty iterator is returned.'''
+
+  if isinstance(service, str):
+    service = get_config_path() / service
+  if service.is_file():
+    with service.open() as lines:
+      yield from (line.rstrip().partition(' ')[::2] for line in lines)
 
 
 def load_options(service, **args):
@@ -52,28 +66,14 @@ def load_options(service, **args):
 
   Returns a dictionary with the keys 'modifier', 'length' and 'charset', and
   possibly other data. Values are obtained from keyword arguments, a config
-  file (if existing), or default values, in decreasing order of priority. An
-  empty modifier results in automatic generation of a new, previously unused
-  modifier. For this a configuration path must be active.'''
+  file (if existing), or default values, in decreasing order of priority.'''
 
-  path = get_config_path(service)
-  path_items = [line.rstrip().partition(' ')[::2] for line in path.open()] if path and path.is_file() else []
-  conf = {'modifier': service, 'length': '32', 'charset': 'ascii'} # default values
-  conf.update(path_items) # stored values
-  conf.update(args) # newly specified values
-  if not conf['modifier']:
-    print('automatically selecting new modifier', file=sys.stderr)
-    assert path, 'automatic modification requires a config path'
-    i = 1
-    used_suffices = [value[len(service):] for key, value in path_items if key=='modifier' and value.startswith(service)]
-    while str(i) in used_suffices:
-      i += 1
-    conf['modifier'] = service+str(i)
-  # parse options
-  options = {key: value for key, value in conf.items() if value} # clear erased values
+  args.update((key, value) for key, value in iter_options(service) if key not in args)
+  options = {'modifier': service, 'length': '32', 'charset': 'ascii'} # default values
+  options.update((key, value) for key, value in args.items() if value)
   assert options['charset'] in charsets, 'invalid character set {!r}; choose from {}'.format(options['charset'], ', '.join(charsets))
   assert options['length'].isdigit(), 'invalid length {!r}'.format(options['length'])
-  options['length'] = int(conf['length'])
+  options['length'] = int(options['length'])
   return options
 
 
@@ -84,19 +84,20 @@ def save_options(service, options):
   configuration directory, appending to previously existing data in case values
   have changed. Silently returns if no configuration directory exists.'''
 
-  path = get_config_path(service)
-  if not path:
+  path = get_config_path()
+  if options.get('modifier') == service:
+    del options['modifier']
+  for key, value in dict(iter_options(path/service)).items():
+    if key not in options:
+      options[key] = ''
+    elif str(options[key]) == value:
+      del options[key]
+  if not options:
     return
-  conf = {'modifier': service}
-  if path.is_file():
-    conf.update(line.rstrip().partition(' ')[::2] for line in path.open())
-  changes = {key: str(value) for key, value in options.items() if str(value) != conf.pop(key, '')}
-  changes.update((key, '') for key, value in conf.items() if value) # clear removed items
-  if not changes:
-    return
-  print('updating', ', '.join(changes), file=sys.stderr)
-  with path.open('a') as f:
-    for key, value in changes.items():
+  path.mkdir(parents=True, exist_ok=True, mode=700)
+  print('updating', ', '.join(options), file=sys.stderr)
+  with (path/service).open('a') as f:
+    for key, value in options.items():
       print(key, value, file=f)
 
 
