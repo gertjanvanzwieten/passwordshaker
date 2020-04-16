@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import sys
+import sys, hashlib, math, pathlib, getpass
 
 __version__ = '0.99'
 
@@ -38,7 +38,6 @@ def get_config_path():
   Returns a pathlib.Path reference to ~/.config/passwordshaker if it exists,
   otherwise ~/.passwordshaker if it exists, otherwise ~/.config/passwordshaker.'''
 
-  import pathlib
   home = pathlib.Path.home()
   path = home / '.config' / 'passwordshaker'
   if not path.is_dir():
@@ -71,7 +70,7 @@ def load_options(service, **args):
   args.update((key, value) for key, value in iter_options(service) if key not in args)
   options = {'modifier': service, 'length': '32', 'charset': 'ascii'} # default values
   options.update((key, value) for key, value in args.items() if value)
-  assert options['charset'] in charsets, 'invalid character set {!r}; choose from {}'.format(options['charset'], ', '.join(charsets))
+  options['charset'] = charsets.get(options['charset'], options['charset'])
   assert options['length'].isdigit(), 'invalid length {!r}'.format(options['length'])
   options['length'] = int(options['length'])
   return options
@@ -108,7 +107,6 @@ def generate(key, chars, length):
   using the shake_256 algorithm, and composes from that a string of speficied
   length and characters.'''
 
-  import hashlib, math
   nchars = len(chars)
   nbytes = math.ceil(length * math.log2(nchars) / 8) # 256**nbytes >= nchars**length
   v = int(hashlib.shake_256(key.encode()).hexdigest(nbytes), 16)
@@ -144,12 +142,12 @@ def password(modifier, length, charset, **other):
   4-syllable fingerprint, and returns the password corresponding to the given
   specifications.'''
 
-  import getpass
-  print('shaking {}{} password for {}'.format(charset, length, modifier), file=sys.stderr)
+  chars = expand(charset)
+  print('shaking {:.0f}-bit password for {}'.format(length * math.log2(len(chars)), modifier), file=sys.stderr)
   for key, val in other.items():
     print('{}: {}'.format(key, val), file=sys.stderr)
   secret = getpass.getpass('master key: ')
   if not secret:
     raise KeyboardInterrupt
   print('fingerprint:', fingerprint(secret), file=sys.stderr)
-  return generate(key=secret+modifier, chars=expand(charsets[charset]), length=length)
+  return generate(key=secret+modifier, chars=chars, length=length)
