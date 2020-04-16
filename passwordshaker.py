@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import sys, hashlib, math, pathlib, getpass, time
+import sys, os, hashlib, math, pathlib, getpass, time
 
 __version__ = '0.99'
 
@@ -38,6 +38,8 @@ def get_config_path():
   Returns a pathlib.Path reference to ~/.config/passwordshaker if it exists,
   otherwise ~/.passwordshaker if it exists, otherwise ~/.config/passwordshaker.'''
 
+  if 'PWS_PATH' in os.environ:
+    return pathlib.Path(os.environ['PWS_PATH'])
   home = pathlib.Path.home()
   path = home / '.config' / 'passwordshaker'
   if not path.is_dir():
