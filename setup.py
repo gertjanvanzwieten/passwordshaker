@@ -6,6 +6,7 @@ assert passwordshaker.generate(key='test', chars='1234567890', length=32) == '99
 setuptools.setup(
   name='passwordshaker',
   version=passwordshaker.__version__,
+  python_requires='>=3.6',
   author='Gertjan van Zwieten',
   py_modules=['passwordshaker'],
   scripts=['pws', 'git-credential-pws'],
