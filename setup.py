@@ -1,11 +1,13 @@
 #! /usr/bin/env python3
 
-import passwordshaker, setuptools
-assert passwordshaker.generate(key='test', chars='1234567890', length=32) == '99966624670202589612394126726588', 'selfcheck failed'
+import setuptools
+
+with open('passwordshaker.py') as src:
+  version = next(line[13:].strip() for line in src if line.startswith('__version__ ='))
 
 setuptools.setup(
   name='passwordshaker',
-  version=passwordshaker.__version__,
+  version=version,
   python_requires='>=3.6',
   author='Gertjan van Zwieten',
   py_modules=['passwordshaker'],
